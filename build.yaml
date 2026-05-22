@@ -1,0 +1,58 @@
+name: Tauri Build
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-tauri:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [macos-latest, ubuntu-22.04, windows-latest]
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Instalar dependências do sistema no Linux
+      - name: Instalar dependências (Ubuntu)
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libssl-dev
+
+      # Configurar Node.js (necessário para o seu npm run build)
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Instalar dependências do Frontend (Assumindo que estão na pasta raiz ou frontend)
+      # Ajuste o caminho dependendo de onde fica o seu package.json
+      - name: Install Frontend Dependencies
+        run: npm install
+
+      # Configurar Rust
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      # Cache do Rust para acelerar builds futuros
+      - uses: Swatinem/rust-cache@v2
+
+      # Construir o app usando a action oficial do Tauri
+      - name: Build Tauri App
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # ESSENCIAL PARA O SQLX COMPILAR SEM BANCO DE DADOS:
+          SQLX_OFFLINE: true 
+        with:
+          tagName: v__VERSION__
+          releaseName: "SAG Desktop v__VERSION__"
+          releaseBody: "Release do SAG Desktop"
+          releaseDraft: true
+          prerelease: false
