@@ -9,15 +9,15 @@ mod supabase;
 // Apenas uma das formas deve existir. Usamos o bloco inline pois não há commands/mod.rs.
 pub mod commands {
     pub mod auth;
-    pub mod escolas;
-    pub mod turmas;
-    pub mod pessoas;
     pub mod chamada;
     pub mod cronograma;
     pub mod diario;
+    pub mod escolas;
+    pub mod pessoas;
+    pub mod turmas;
 }
 
-use commands::{auth, escolas, turmas, pessoas, chamada, cronograma, diario};
+use commands::{auth, chamada, cronograma, diario, escolas, pessoas, turmas};
 use sqlx::postgres::PgPoolOptions;
 use supabase::SupabaseAdmin;
 
@@ -51,13 +51,32 @@ pub fn run() {
                 }
             };
 
+            let pg_url = match cfg.pg_url() {
+                Ok(url) => url,
+                Err(e) => {
+                    eprintln!("ERRO DE CONFIGURAÇÃO:\n{e}");
+                    std::process::exit(1);
+                }
+            };
+
             // Pool de conexões PostgreSQL
-            let pool = tauri::async_runtime::block_on(
+            let pool = match tauri::async_runtime::block_on(
                 PgPoolOptions::new()
                     .max_connections(5)
-                    .connect(&cfg.pg_url())
-            )
-            .expect("Falha ao conectar ao banco de dados. Verifique o config.toml.");
+                    .connect(&pg_url)
+            ) {
+                Ok(pool) => pool,
+                Err(e) => {
+                    let config_path = config::AppConfig::config_path()
+                        .map(|path| path.display().to_string())
+                        .unwrap_or_else(|_| "~/.config/sag/config.toml".to_string());
+
+                    eprintln!(
+                        "ERRO AO CONECTAR AO BANCO DE DADOS:\n{e}\n\nConfig: {config_path}\n\nDica: se estiver usando Supabase e aparecer \"Network is unreachable\", a conexão direta db.<ref>.supabase.co provavelmente está resolvendo para IPv6. Use a string do Transaction pooler ou Session pooler no campo database.url do config.toml."
+                    );
+                    std::process::exit(1);
+                }
+            };
 
             let supabase = SupabaseAdmin::new(
                 cfg.supabase.url.clone(),

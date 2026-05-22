@@ -1,17 +1,22 @@
 // src-tauri/src/commands/diario.rs
 
+use crate::AppState;
 use serde::{Deserialize, Serialize};
 use tauri::State;
-use crate::AppState;
 
 #[derive(Serialize, Deserialize)]
 pub struct DiarioAula {
     pub id: String,
-    #[serde(rename = "professorId")] pub professor_id: String,
-    #[serde(rename = "turmaId")]     pub turma_id: String,
-    #[serde(rename = "turmaNome")]   pub turma_nome: String,
-    #[serde(rename = "escolaNome")]  pub escola_nome: String,
-    #[serde(rename = "dataAula")]    pub data_aula: String,
+    #[serde(rename = "professorId")]
+    pub professor_id: String,
+    #[serde(rename = "turmaId")]
+    pub turma_id: String,
+    #[serde(rename = "turmaNome")]
+    pub turma_nome: String,
+    #[serde(rename = "escolaNome")]
+    pub escola_nome: String,
+    #[serde(rename = "dataAula")]
+    pub data_aula: String,
     pub titulo: String,
     pub conteudo: String,
     pub observacoes: String,
@@ -23,7 +28,9 @@ pub async fn get_diario(
     turma_id: Option<String>,
     state: State<'_, AppState>,
 ) -> Result<Vec<DiarioAula>, String> {
-    let pid = professor_id.parse::<uuid::Uuid>().map_err(|e| e.to_string())?;
+    let pid = professor_id
+        .parse::<uuid::Uuid>()
+        .map_err(|e| e.to_string())?;
     let pool = &state.db;
 
     if let Some(tid) = turma_id {
@@ -35,21 +42,27 @@ pub async fn get_diario(
                JOIN turmas t ON t.id=d.turma_id JOIN escolas e ON e.id=t.escola_id
                WHERE d.professor_id=$1 AND d.turma_id=$2::uuid
                ORDER BY d.data_aula DESC, d.created_at DESC"#,
-            pid, tid.parse::<uuid::Uuid>().map_err(|e| e.to_string())?
+            pid,
+            tid.parse::<uuid::Uuid>().map_err(|e| e.to_string())?
         )
-        .fetch_all(pool).await.map_err(|e| e.to_string())?;
+        .fetch_all(pool)
+        .await
+        .map_err(|e| e.to_string())?;
 
-        Ok(rows.into_iter().map(|r| DiarioAula {
-            id: r.id.unwrap_or_default(),
-            professor_id: r.professor_id.unwrap_or_default(),
-            turma_id: r.turma_id.unwrap_or_default(),
-            turma_nome: r.turma_nome,
-            escola_nome: r.escola_nome,
-            data_aula: r.data_aula.unwrap_or_default(),
-            titulo: r.titulo,
-            conteudo: r.conteudo,
-            observacoes: r.observacoes,
-        }).collect())
+        Ok(rows
+            .into_iter()
+            .map(|r| DiarioAula {
+                id: r.id.unwrap_or_default(),
+                professor_id: r.professor_id.unwrap_or_default(),
+                turma_id: r.turma_id.unwrap_or_default(),
+                turma_nome: r.turma_nome,
+                escola_nome: r.escola_nome,
+                data_aula: r.data_aula.unwrap_or_default(),
+                titulo: r.titulo,
+                conteudo: r.conteudo,
+                observacoes: r.observacoes,
+            })
+            .collect())
     } else {
         let rows = sqlx::query!(
             r#"SELECT d.id::text, d.professor_id::text, d.turma_id::text,
@@ -61,19 +74,24 @@ pub async fn get_diario(
                ORDER BY d.data_aula DESC, d.created_at DESC"#,
             pid
         )
-        .fetch_all(pool).await.map_err(|e| e.to_string())?;
+        .fetch_all(pool)
+        .await
+        .map_err(|e| e.to_string())?;
 
-        Ok(rows.into_iter().map(|r| DiarioAula {
-            id: r.id.unwrap_or_default(),
-            professor_id: r.professor_id.unwrap_or_default(),
-            turma_id: r.turma_id.unwrap_or_default(),
-            turma_nome: r.turma_nome,
-            escola_nome: r.escola_nome,
-            data_aula: r.data_aula.unwrap_or_default(),
-            titulo: r.titulo,
-            conteudo: r.conteudo,
-            observacoes: r.observacoes,
-        }).collect())
+        Ok(rows
+            .into_iter()
+            .map(|r| DiarioAula {
+                id: r.id.unwrap_or_default(),
+                professor_id: r.professor_id.unwrap_or_default(),
+                turma_id: r.turma_id.unwrap_or_default(),
+                turma_nome: r.turma_nome,
+                escola_nome: r.escola_nome,
+                data_aula: r.data_aula.unwrap_or_default(),
+                titulo: r.titulo,
+                conteudo: r.conteudo,
+                observacoes: r.observacoes,
+            })
+            .collect())
     }
 }
 
@@ -87,7 +105,8 @@ pub async fn criar_diario(
     observacoes: String,
     state: State<'_, AppState>,
 ) -> Result<String, String> {
-    let parsed_data = chrono::NaiveDate::parse_from_str(&data_aula, "%Y-%m-%d").map_err(|e| e.to_string())?;
+    let parsed_data =
+        chrono::NaiveDate::parse_from_str(&data_aula, "%Y-%m-%d").map_err(|e| e.to_string())?;
 
     let row = sqlx::query!(
         "INSERT INTO diario_aulas (professor_id, turma_id, data_aula, titulo, conteudo, observacoes)
@@ -96,7 +115,9 @@ pub async fn criar_diario(
         turma_id.parse::<uuid::Uuid>().map_err(|e| e.to_string())?,
         parsed_data, titulo, conteudo, observacoes
     )
-    .fetch_one(&state.db).await.map_err(|e| e.to_string())?;
+    .fetch_one(&state.db)
+    .await
+    .map_err(|e| e.to_string())?;
     Ok(row.id.unwrap_or_default())
 }
 
@@ -109,7 +130,8 @@ pub async fn atualizar_diario(
     observacoes: String,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    let parsed_data = chrono::NaiveDate::parse_from_str(&data_aula, "%Y-%m-%d").map_err(|e| e.to_string())?;
+    let parsed_data =
+        chrono::NaiveDate::parse_from_str(&data_aula, "%Y-%m-%d").map_err(|e| e.to_string())?;
 
     sqlx::query!(
         "UPDATE diario_aulas SET data_aula=$1, titulo=$2, conteudo=$3, observacoes=$4 WHERE id=$5::uuid",
@@ -126,7 +148,9 @@ pub async fn excluir_diario(id: String, state: State<'_, AppState>) -> Result<()
         "DELETE FROM diario_aulas WHERE id=$1::uuid",
         id.parse::<uuid::Uuid>().map_err(|e| e.to_string())?
     )
-    .execute(&state.db).await.map_err(|e| e.to_string())?;
+    .execute(&state.db)
+    .await
+    .map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -134,21 +158,36 @@ pub async fn excluir_diario(id: String, state: State<'_, AppState>) -> Result<()
 
 #[derive(Serialize, Deserialize)]
 pub struct RegistroHoras {
-    #[serde(rename = "chamadaId")]     pub chamada_id: String,
-    #[serde(rename = "professorId")]   pub professor_id: String,
-    #[serde(rename = "professorNome")] pub professor_nome: String,
-    #[serde(rename = "turmaId")]       pub turma_id: String,
-    #[serde(rename = "turmaNome")]     pub turma_nome: String,
-    #[serde(rename = "escolaNome")]    pub escola_nome: String,
-    #[serde(rename = "escolaTipo")]    pub escola_tipo: String,
-    #[serde(rename = "dataAula")]      pub data_aula: String,
-    #[serde(rename = "horarioInicio")] pub horario_inicio: String,
-    #[serde(rename = "horarioFim")]    pub horario_fim: String,
-    #[serde(rename = "tipoAula")]      pub tipo_aula: String,
-    #[serde(rename = "horasMinistradas")] pub horas_ministradas: f64,
-    #[serde(rename = "totalAlunos")]   pub total_alunos: i64,
-    #[serde(rename = "totalPresentes")] pub total_presentes: i64,
-    #[serde(rename = "totalAusentes")] pub total_ausentes: i64,
+    #[serde(rename = "chamadaId")]
+    pub chamada_id: String,
+    #[serde(rename = "professorId")]
+    pub professor_id: String,
+    #[serde(rename = "professorNome")]
+    pub professor_nome: String,
+    #[serde(rename = "turmaId")]
+    pub turma_id: String,
+    #[serde(rename = "turmaNome")]
+    pub turma_nome: String,
+    #[serde(rename = "escolaNome")]
+    pub escola_nome: String,
+    #[serde(rename = "escolaTipo")]
+    pub escola_tipo: String,
+    #[serde(rename = "dataAula")]
+    pub data_aula: String,
+    #[serde(rename = "horarioInicio")]
+    pub horario_inicio: String,
+    #[serde(rename = "horarioFim")]
+    pub horario_fim: String,
+    #[serde(rename = "tipoAula")]
+    pub tipo_aula: String,
+    #[serde(rename = "horasMinistradas")]
+    pub horas_ministradas: f64,
+    #[serde(rename = "totalAlunos")]
+    pub total_alunos: i64,
+    #[serde(rename = "totalPresentes")]
+    pub total_presentes: i64,
+    #[serde(rename = "totalAusentes")]
+    pub total_ausentes: i64,
 }
 
 #[tauri::command]
@@ -158,7 +197,6 @@ pub async fn get_horas(
     ano: Option<i32>,
     state: State<'_, AppState>,
 ) -> Result<Vec<RegistroHoras>, String> {
-    // Usa a view v_registro_horas
     let rows = sqlx::query!(
         r#"SELECT chamada_id::text, professor_id::text, professor_nome,
                   turma_id::text, turma_nome, escola_nome,
@@ -166,32 +204,65 @@ pub async fn get_horas(
                   data_aula::text, horario_inicio, horario_fim, tipo_aula,
                   horas_ministradas::float8 AS horas_ministradas,
                   total_alunos, total_presentes, total_ausentes
-           FROM v_registro_horas
+           FROM (
+               SELECT
+                   c.id AS chamada_id,
+                   c.professor_id,
+                   p.nome AS professor_nome,
+                   c.turma_id,
+                   t.nome AS turma_nome,
+                   e.nome AS escola_nome,
+                   e.tipo AS escola_tipo,
+                   c.data_aula,
+                   TO_CHAR(c.horario_inicio, 'HH24:MI') AS horario_inicio,
+                   TO_CHAR(c.horario_fim, 'HH24:MI') AS horario_fim,
+                   COALESCE(ca.tipo, 'AULA') AS tipo_aula,
+                   ROUND((EXTRACT(EPOCH FROM (c.horario_fim - c.horario_inicio)) / 3600.0)::numeric, 2) AS horas_ministradas,
+                   COUNT(cp.id) AS total_alunos,
+                   COUNT(cp.id) FILTER (WHERE cp.presente) AS total_presentes,
+                   COUNT(cp.id) FILTER (WHERE NOT cp.presente) AS total_ausentes,
+                   EXTRACT(MONTH FROM c.data_aula)::int AS mes,
+                   EXTRACT(YEAR FROM c.data_aula)::int AS ano
+               FROM chamadas c
+               JOIN perfis p ON p.id = c.professor_id
+               JOIN turmas t ON t.id = c.turma_id
+               JOIN escolas e ON e.id = t.escola_id
+               LEFT JOIN cronograma_aulas ca ON ca.id = c.cronograma_id
+               LEFT JOIN chamada_presencas cp ON cp.chamada_id = c.id
+               GROUP BY c.id, p.nome, t.nome, e.nome, e.tipo, ca.tipo
+           ) registro_horas
            WHERE ($1::uuid IS NULL OR professor_id = $1::uuid)
              AND ($2::int IS NULL OR mes = $2::int)
              AND ($3::int IS NULL OR ano = $3::int)
            ORDER BY data_aula DESC, professor_nome, horario_inicio"#,
-        professor_id.as_deref().and_then(|s| s.parse::<uuid::Uuid>().ok()),
+        professor_id
+            .as_deref()
+            .and_then(|s| s.parse::<uuid::Uuid>().ok()),
         mes,
         ano
     )
-    .fetch_all(&state.db).await.map_err(|e| e.to_string())?;
+    .fetch_all(&state.db)
+    .await
+    .map_err(|e| e.to_string())?;
 
-    Ok(rows.into_iter().map(|r| RegistroHoras {
-        chamada_id: r.chamada_id.unwrap_or_default(),
-        professor_id: r.professor_id.unwrap_or_default(),
-        professor_nome: r.professor_nome.unwrap_or_default(),
-        turma_id: r.turma_id.unwrap_or_default(),
-        turma_nome: r.turma_nome.unwrap_or_default(),
-        escola_nome: r.escola_nome.unwrap_or_default(),
-        escola_tipo: r.escola_tipo.unwrap_or_else(|| "PUBLICA".into()),
-        data_aula: r.data_aula.unwrap_or_default(),
-        horario_inicio: r.horario_inicio.unwrap_or_default(),
-        horario_fim: r.horario_fim.unwrap_or_default(),
-        tipo_aula: r.tipo_aula.unwrap_or_default(),
-        horas_ministradas: r.horas_ministradas.unwrap_or(0.0),
-        total_alunos: r.total_alunos.unwrap_or(0),
-        total_presentes: r.total_presentes.unwrap_or(0),
-        total_ausentes: r.total_ausentes.unwrap_or(0),
-    }).collect())
+    Ok(rows
+        .into_iter()
+        .map(|r| RegistroHoras {
+            chamada_id: r.chamada_id.unwrap_or_default(),
+            professor_id: r.professor_id.unwrap_or_default(),
+            professor_nome: r.professor_nome,
+            turma_id: r.turma_id.unwrap_or_default(),
+            turma_nome: r.turma_nome,
+            escola_nome: r.escola_nome,
+            escola_tipo: r.escola_tipo.unwrap_or_else(|| "PUBLICA".into()),
+            data_aula: r.data_aula.unwrap_or_default(),
+            horario_inicio: r.horario_inicio.unwrap_or_default(),
+            horario_fim: r.horario_fim.unwrap_or_default(),
+            tipo_aula: r.tipo_aula.unwrap_or_default(),
+            horas_ministradas: r.horas_ministradas.unwrap_or(0.0),
+            total_alunos: r.total_alunos.unwrap_or(0),
+            total_presentes: r.total_presentes.unwrap_or(0),
+            total_ausentes: r.total_ausentes.unwrap_or(0),
+        })
+        .collect())
 }

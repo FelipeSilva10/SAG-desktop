@@ -1,40 +1,58 @@
 // src-tauri/src/commands/chamada.rs
 
+use crate::AppState;
 use serde::{Deserialize, Serialize};
 use tauri::State;
-use crate::AppState;
 
 #[derive(Serialize, Deserialize)]
 pub struct Chamada {
     pub id: String,
-    #[serde(rename = "professorId")] pub professor_id: String,
-    #[serde(rename = "turmaId")]     pub turma_id: String,
-    #[serde(rename = "turmaNome")]   pub turma_nome: String,
-    #[serde(rename = "cronogramaId")] pub cronograma_id: Option<String>,
-    #[serde(rename = "dataAula")]    pub data_aula: String,
-    #[serde(rename = "horarioInicio")] pub horario_inicio: String,
-    #[serde(rename = "horarioFim")]  pub horario_fim: String,
-    #[serde(rename = "totalAlunos")] pub total_alunos: i64,
-    #[serde(rename = "totalPresentes")] pub total_presentes: i64,
+    #[serde(rename = "professorId")]
+    pub professor_id: String,
+    #[serde(rename = "turmaId")]
+    pub turma_id: String,
+    #[serde(rename = "turmaNome")]
+    pub turma_nome: String,
+    #[serde(rename = "cronogramaId")]
+    pub cronograma_id: Option<String>,
+    #[serde(rename = "dataAula")]
+    pub data_aula: String,
+    #[serde(rename = "horarioInicio")]
+    pub horario_inicio: String,
+    #[serde(rename = "horarioFim")]
+    pub horario_fim: String,
+    #[serde(rename = "totalAlunos")]
+    pub total_alunos: i64,
+    #[serde(rename = "totalPresentes")]
+    pub total_presentes: i64,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct ChamadaPresenca {
     pub id: Option<String>,
-    #[serde(rename = "chamadaId")] pub chamada_id: Option<String>,
-    #[serde(rename = "alunoId")]   pub aluno_id: String,
-    #[serde(rename = "alunoNome")] pub aluno_nome: String,
+    #[serde(rename = "chamadaId")]
+    pub chamada_id: Option<String>,
+    #[serde(rename = "alunoId")]
+    pub aluno_id: String,
+    #[serde(rename = "alunoNome")]
+    pub aluno_nome: String,
     pub presente: bool,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct ResumoTurma {
-    #[serde(rename = "turmaId")]       pub turma_id: String,
-    #[serde(rename = "turmaNome")]     pub turma_nome: String,
-    #[serde(rename = "escolaNome")]    pub escola_nome: String,
-    #[serde(rename = "totalChamadas")] pub total_chamadas: i64,
-    #[serde(rename = "ultimaChamada")] pub ultima_chamada: Option<String>,
-    #[serde(rename = "mediaPresenca")] pub media_presenca: f64,
+    #[serde(rename = "turmaId")]
+    pub turma_id: String,
+    #[serde(rename = "turmaNome")]
+    pub turma_nome: String,
+    #[serde(rename = "escolaNome")]
+    pub escola_nome: String,
+    #[serde(rename = "totalChamadas")]
+    pub total_chamadas: i64,
+    #[serde(rename = "ultimaChamada")]
+    pub ultima_chamada: Option<String>,
+    #[serde(rename = "mediaPresenca")]
+    pub media_presenca: f64,
 }
 
 #[tauri::command]
@@ -42,7 +60,9 @@ pub async fn get_chamadas(
     professor_id: String,
     state: State<'_, AppState>,
 ) -> Result<Vec<Chamada>, String> {
-    let pid = professor_id.parse::<uuid::Uuid>().map_err(|e| e.to_string())?;
+    let pid = professor_id
+        .parse::<uuid::Uuid>()
+        .map_err(|e| e.to_string())?;
     let rows = sqlx::query!(
         r#"SELECT c.id::text, c.professor_id::text, c.turma_id::text,
                   t.nome AS turma_nome,
@@ -60,20 +80,25 @@ pub async fn get_chamadas(
            ORDER BY c.data_aula DESC, c.horario_inicio"#,
         pid
     )
-    .fetch_all(&state.db).await.map_err(|e| e.to_string())?;
+    .fetch_all(&state.db)
+    .await
+    .map_err(|e| e.to_string())?;
 
-    Ok(rows.into_iter().map(|r| Chamada {
-        id: r.id.unwrap_or_default(),
-        professor_id: r.professor_id.unwrap_or_default(),
-        turma_id: r.turma_id.unwrap_or_default(),
-        turma_nome: r.turma_nome,
-        cronograma_id: r.cronograma_id,
-        data_aula: r.data_aula.unwrap_or_default(),
-        horario_inicio: r.horario_inicio.unwrap_or_default(),
-        horario_fim: r.horario_fim.unwrap_or_default(),
-        total_alunos: r.total_alunos.unwrap_or(0),
-        total_presentes: r.total_presentes.unwrap_or(0),
-    }).collect())
+    Ok(rows
+        .into_iter()
+        .map(|r| Chamada {
+            id: r.id.unwrap_or_default(),
+            professor_id: r.professor_id.unwrap_or_default(),
+            turma_id: r.turma_id.unwrap_or_default(),
+            turma_nome: r.turma_nome,
+            cronograma_id: r.cronograma_id,
+            data_aula: r.data_aula.unwrap_or_default(),
+            horario_inicio: r.horario_inicio.unwrap_or_default(),
+            horario_fim: r.horario_fim.unwrap_or_default(),
+            total_alunos: r.total_alunos.unwrap_or(0),
+            total_presentes: r.total_presentes.unwrap_or(0),
+        })
+        .collect())
 }
 
 #[tauri::command]
@@ -81,7 +106,9 @@ pub async fn get_resumo_chamada(
     professor_id: String,
     state: State<'_, AppState>,
 ) -> Result<Vec<ResumoTurma>, String> {
-    let pid = professor_id.parse::<uuid::Uuid>().map_err(|e| e.to_string())?;
+    let pid = professor_id
+        .parse::<uuid::Uuid>()
+        .map_err(|e| e.to_string())?;
     let rows = sqlx::query!(
         r#"SELECT t.id::text AS turma_id, t.nome AS turma_nome, e.nome AS escola_nome,
                   COUNT(DISTINCT c.id) AS total_chamadas,
@@ -98,16 +125,21 @@ pub async fn get_resumo_chamada(
            GROUP BY t.id, t.nome, e.nome ORDER BY t.nome"#,
         pid
     )
-    .fetch_all(&state.db).await.map_err(|e| e.to_string())?;
+    .fetch_all(&state.db)
+    .await
+    .map_err(|e| e.to_string())?;
 
-    Ok(rows.into_iter().map(|r| ResumoTurma {
-        turma_id: r.turma_id.unwrap_or_default(),
-        turma_nome: r.turma_nome,
-        escola_nome: r.escola_nome,
-        total_chamadas: r.total_chamadas.unwrap_or(0),
-        ultima_chamada: r.ultima_chamada,
-        media_presenca: r.media_presenca.unwrap_or(0.0),
-    }).collect())
+    Ok(rows
+        .into_iter()
+        .map(|r| ResumoTurma {
+            turma_id: r.turma_id.unwrap_or_default(),
+            turma_nome: r.turma_nome,
+            escola_nome: r.escola_nome,
+            total_chamadas: r.total_chamadas.unwrap_or(0),
+            ultima_chamada: r.ultima_chamada,
+            media_presenca: r.media_presenca.unwrap_or(0.0),
+        })
+        .collect())
 }
 
 #[tauri::command]
@@ -117,9 +149,12 @@ pub async fn chamada_existe(
     data: String,
     state: State<'_, AppState>,
 ) -> Result<bool, String> {
-    let pid = professor_id.parse::<uuid::Uuid>().map_err(|e| e.to_string())?;
+    let pid = professor_id
+        .parse::<uuid::Uuid>()
+        .map_err(|e| e.to_string())?;
     let tid = turma_id.parse::<uuid::Uuid>().map_err(|e| e.to_string())?;
-    let parsed_data = chrono::NaiveDate::parse_from_str(&data, "%Y-%m-%d").map_err(|e| e.to_string())?;
+    let parsed_data =
+        chrono::NaiveDate::parse_from_str(&data, "%Y-%m-%d").map_err(|e| e.to_string())?;
 
     let row = sqlx::query!(
         "SELECT 1 as existe FROM chamadas WHERE professor_id=$1 AND turma_id=$2 AND data_aula=$3 LIMIT 1",
@@ -141,16 +176,21 @@ pub async fn salvar_chamada(
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let pool = &state.db;
-    let pid = professor_id.parse::<uuid::Uuid>().map_err(|e| e.to_string())?;
+    let pid = professor_id
+        .parse::<uuid::Uuid>()
+        .map_err(|e| e.to_string())?;
     let tid = turma_id.parse::<uuid::Uuid>().map_err(|e| e.to_string())?;
     let cid: Option<uuid::Uuid> = cronograma_id
         .as_deref()
         .map(|s| s.parse::<uuid::Uuid>().map_err(|e| e.to_string()))
         .transpose()?;
 
-    let parsed_data = chrono::NaiveDate::parse_from_str(&data_aula, "%Y-%m-%d").map_err(|e| e.to_string())?;
-    let parsed_inicio = chrono::NaiveTime::parse_from_str(&horario_inicio, "%H:%M").map_err(|e| e.to_string())?;
-    let parsed_fim = chrono::NaiveTime::parse_from_str(&horario_fim, "%H:%M").map_err(|e| e.to_string())?;
+    let parsed_data =
+        chrono::NaiveDate::parse_from_str(&data_aula, "%Y-%m-%d").map_err(|e| e.to_string())?;
+    let parsed_inicio =
+        chrono::NaiveTime::parse_from_str(&horario_inicio, "%H:%M").map_err(|e| e.to_string())?;
+    let parsed_fim =
+        chrono::NaiveTime::parse_from_str(&horario_fim, "%H:%M").map_err(|e| e.to_string())?;
 
     let mut tx = pool.begin().await.map_err(|e| e.to_string())?;
 
@@ -164,14 +204,20 @@ pub async fn salvar_chamada(
     let chamada_id = chamada.id;
 
     for p in &presencas {
-        let aid = p.aluno_id.parse::<uuid::Uuid>().map_err(|e| e.to_string())?;
+        let aid = p
+            .aluno_id
+            .parse::<uuid::Uuid>()
+            .map_err(|e| e.to_string())?;
         sqlx::query!(
             "INSERT INTO chamada_presencas (chamada_id, aluno_id, presente)
-             VALUES ($1, $2, $3)
-             ON CONFLICT (chamada_id, aluno_id) DO UPDATE SET presente=EXCLUDED.presente",
-            chamada_id, aid, p.presente
+             VALUES ($1, $2, $3)",
+            chamada_id,
+            aid,
+            p.presente
         )
-        .execute(&mut *tx).await.map_err(|e| e.to_string())?;
+        .execute(&mut *tx)
+        .await
+        .map_err(|e| e.to_string())?;
     }
 
     tx.commit().await.map_err(|e| e.to_string())?;
@@ -183,7 +229,9 @@ pub async fn get_presencas_chamada(
     chamada_id: String,
     state: State<'_, AppState>,
 ) -> Result<Vec<ChamadaPresenca>, String> {
-    let cid = chamada_id.parse::<uuid::Uuid>().map_err(|e| e.to_string())?;
+    let cid = chamada_id
+        .parse::<uuid::Uuid>()
+        .map_err(|e| e.to_string())?;
     let rows = sqlx::query!(
         r#"SELECT cp.id::text, cp.chamada_id::text, cp.aluno_id::text,
                   p.nome AS aluno_nome, cp.presente
@@ -191,15 +239,20 @@ pub async fn get_presencas_chamada(
            WHERE cp.chamada_id=$1 ORDER BY p.nome"#,
         cid
     )
-    .fetch_all(&state.db).await.map_err(|e| e.to_string())?;
+    .fetch_all(&state.db)
+    .await
+    .map_err(|e| e.to_string())?;
 
-    Ok(rows.into_iter().map(|r| ChamadaPresenca {
-        id: r.id,
-        chamada_id: r.chamada_id,
-        aluno_id: r.aluno_id.unwrap_or_default(),
-        aluno_nome: r.aluno_nome,
-        presente: r.presente,
-    }).collect())
+    Ok(rows
+        .into_iter()
+        .map(|r| ChamadaPresenca {
+            id: r.id,
+            chamada_id: r.chamada_id,
+            aluno_id: r.aluno_id.unwrap_or_default(),
+            aluno_nome: r.aluno_nome,
+            presente: r.presente,
+        })
+        .collect())
 }
 
 #[tauri::command]
@@ -212,9 +265,12 @@ pub async fn atualizar_presencas(
             let pid = id.parse::<uuid::Uuid>().map_err(|e| e.to_string())?;
             sqlx::query!(
                 "UPDATE chamada_presencas SET presente=$1 WHERE id=$2",
-                p.presente, pid
+                p.presente,
+                pid
             )
-            .execute(&state.db).await.map_err(|e| e.to_string())?;
+            .execute(&state.db)
+            .await
+            .map_err(|e| e.to_string())?;
         }
     }
     Ok(())
@@ -225,9 +281,13 @@ pub async fn excluir_chamada(id: String, state: State<'_, AppState>) -> Result<(
     let cid = id.parse::<uuid::Uuid>().map_err(|e| e.to_string())?;
     let mut tx = state.db.begin().await.map_err(|e| e.to_string())?;
     sqlx::query!("DELETE FROM chamada_presencas WHERE chamada_id=$1", cid)
-        .execute(&mut *tx).await.map_err(|e| e.to_string())?;
+        .execute(&mut *tx)
+        .await
+        .map_err(|e| e.to_string())?;
     sqlx::query!("DELETE FROM chamadas WHERE id=$1", cid)
-        .execute(&mut *tx).await.map_err(|e| e.to_string())?;
+        .execute(&mut *tx)
+        .await
+        .map_err(|e| e.to_string())?;
     tx.commit().await.map_err(|e| e.to_string())?;
     Ok(())
 }

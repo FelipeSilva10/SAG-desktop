@@ -1,8 +1,8 @@
 // src-tauri/src/commands/turmas.rs
 
+use crate::AppState;
 use serde::{Deserialize, Serialize};
 use tauri::State;
-use crate::AppState;
 
 #[derive(Serialize, Deserialize)]
 pub struct Turma {
@@ -38,18 +38,22 @@ pub async fn get_turmas(
                WHERE t.professor_id=$1::uuid ORDER BY e.nome, t.nome"#,
             pid.parse::<uuid::Uuid>().map_err(|e| e.to_string())?
         )
-        .fetch_all(pool).await.map_err(|e| e.to_string())?;
-        
-        Ok(rows.into_iter().map(|r| Turma {
-            id: r.id.unwrap_or_default(),
-            escola_id: r.escola_id.unwrap_or_default(),
-            nome: r.nome,
-            ano_letivo: r.ano_letivo,
-            escola_nome: r.escola_nome,
-            professor_nome: r.prof_nome.unwrap_or_else(|| "Sem Professor".into()),
-            professor_id: r.professor_id,
-        }).collect())
+        .fetch_all(pool)
+        .await
+        .map_err(|e| e.to_string())?;
 
+        Ok(rows
+            .into_iter()
+            .map(|r| Turma {
+                id: r.id.unwrap_or_default(),
+                escola_id: r.escola_id.unwrap_or_default(),
+                nome: r.nome,
+                ano_letivo: r.ano_letivo,
+                escola_nome: r.escola_nome,
+                professor_nome: r.prof_nome.unwrap_or_else(|| "Sem Professor".into()),
+                professor_id: r.professor_id,
+            })
+            .collect())
     } else if let Some(eid) = escola_id {
         let rows = sqlx::query!(
             r#"SELECT t.id::text, t.escola_id::text, t.nome, t.ano_letivo,
@@ -60,18 +64,22 @@ pub async fn get_turmas(
                WHERE t.escola_id=$1::uuid ORDER BY t.created_at DESC"#,
             eid.parse::<uuid::Uuid>().map_err(|e| e.to_string())?
         )
-        .fetch_all(pool).await.map_err(|e| e.to_string())?;
+        .fetch_all(pool)
+        .await
+        .map_err(|e| e.to_string())?;
 
-        Ok(rows.into_iter().map(|r| Turma {
-            id: r.id.unwrap_or_default(),
-            escola_id: r.escola_id.unwrap_or_default(),
-            nome: r.nome,
-            ano_letivo: r.ano_letivo,
-            escola_nome: r.escola_nome,
-            professor_nome: r.prof_nome.unwrap_or_else(|| "Sem Professor".into()),
-            professor_id: r.professor_id,
-        }).collect())
-
+        Ok(rows
+            .into_iter()
+            .map(|r| Turma {
+                id: r.id.unwrap_or_default(),
+                escola_id: r.escola_id.unwrap_or_default(),
+                nome: r.nome,
+                ano_letivo: r.ano_letivo,
+                escola_nome: r.escola_nome,
+                professor_nome: r.prof_nome.unwrap_or_else(|| "Sem Professor".into()),
+                professor_id: r.professor_id,
+            })
+            .collect())
     } else {
         let rows = sqlx::query!(
             r#"SELECT t.id::text, t.escola_id::text, t.nome, t.ano_letivo,
@@ -81,17 +89,22 @@ pub async fn get_turmas(
                LEFT JOIN perfis p ON p.id=t.professor_id
                ORDER BY t.created_at DESC"#
         )
-        .fetch_all(pool).await.map_err(|e| e.to_string())?;
+        .fetch_all(pool)
+        .await
+        .map_err(|e| e.to_string())?;
 
-        Ok(rows.into_iter().map(|r| Turma {
-            id: r.id.unwrap_or_default(),
-            escola_id: r.escola_id.unwrap_or_default(),
-            nome: r.nome,
-            ano_letivo: r.ano_letivo,
-            escola_nome: r.escola_nome,
-            professor_nome: r.prof_nome.unwrap_or_else(|| "Sem Professor".into()),
-            professor_id: r.professor_id,
-        }).collect())
+        Ok(rows
+            .into_iter()
+            .map(|r| Turma {
+                id: r.id.unwrap_or_default(),
+                escola_id: r.escola_id.unwrap_or_default(),
+                nome: r.nome,
+                ano_letivo: r.ano_letivo,
+                escola_nome: r.escola_nome,
+                professor_nome: r.prof_nome.unwrap_or_else(|| "Sem Professor".into()),
+                professor_id: r.professor_id,
+            })
+            .collect())
     }
 }
 
@@ -120,14 +133,10 @@ pub async fn criar_turma(
 
     if let Some(pid) = professor_id {
         let pid = pid.parse::<uuid::Uuid>().map_err(|e| e.to_string())?;
-        sqlx::query!(
-            "UPDATE turmas SET professor_id=$1 WHERE id=$2",
-            pid,
-            row.id
-        )
-        .execute(&mut *tx)
-        .await
-        .map_err(|e| e.to_string())?;
+        sqlx::query!("UPDATE turmas SET professor_id=$1 WHERE id=$2", pid, row.id)
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| e.to_string())?;
     }
 
     tx.commit().await.map_err(|e| e.to_string())?;
@@ -160,7 +169,7 @@ pub async fn atualizar_turma(
         eid,
         nome.trim(),
         ano_letivo,
-        pid,  // Option<Uuid> → sqlx envia NULL quando None
+        pid, // Option<Uuid> → sqlx envia NULL quando None
         tid
     )
     .execute(pool)
@@ -174,6 +183,8 @@ pub async fn atualizar_turma(
 pub async fn excluir_turma(id: String, state: State<'_, AppState>) -> Result<(), String> {
     let tid = id.parse::<uuid::Uuid>().map_err(|e| e.to_string())?;
     sqlx::query!("DELETE FROM turmas WHERE id=$1", tid)
-        .execute(&state.db).await.map_err(|e| e.to_string())?;
+        .execute(&state.db)
+        .await
+        .map_err(|e| e.to_string())?;
     Ok(())
 }

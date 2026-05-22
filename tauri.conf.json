@@ -5,9 +5,9 @@
   "identifier": "com.orbita.sag",
   "build": {
     "frontendDist": "../dist",
-    "devUrl": "http://localhost:5173",
-    "beforeDevCommand": "npm run dev",
-    "beforeBuildCommand": "npm run build"
+    "devUrl": "http://localhost:3000",
+    "beforeDevCommand": "npm --prefix ../SAG run dev",
+    "beforeBuildCommand": "npm --prefix ../SAG run build"
   },
   "app": {
     "withGlobalTauri": true,

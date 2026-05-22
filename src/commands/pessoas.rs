@@ -1,8 +1,8 @@
 // src-tauri/src/commands/pessoas.rs
 
+use crate::AppState;
 use serde::{Deserialize, Serialize};
 use tauri::State;
-use crate::AppState;
 
 #[derive(Serialize, Deserialize)]
 pub struct Professor {
@@ -17,14 +17,19 @@ pub async fn get_professores(state: State<'_, AppState>) -> Result<Vec<Professor
     let rows = sqlx::query!(
         "SELECT id::text, nome, email, senha FROM perfis WHERE role='teacher' ORDER BY nome"
     )
-    .fetch_all(&state.db).await.map_err(|e| e.to_string())?;
+    .fetch_all(&state.db)
+    .await
+    .map_err(|e| e.to_string())?;
 
-    Ok(rows.into_iter().map(|r| Professor {
-        id: r.id.unwrap_or_default(),
-        nome: r.nome,
-        email: r.email.unwrap_or_default(),
-        senha: r.senha.unwrap_or_default(),
-    }).collect())
+    Ok(rows
+        .into_iter()
+        .map(|r| Professor {
+            id: r.id.unwrap_or_default(),
+            nome: r.nome,
+            email: r.email.unwrap_or_default(),
+            senha: r.senha.unwrap_or_default(),
+        })
+        .collect())
 }
 
 #[tauri::command]
@@ -34,7 +39,9 @@ pub async fn criar_professor(
     senha: String,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    if senha.len() < 6 { return Err("Senha mínima de 6 caracteres.".into()); }
+    if senha.len() < 6 {
+        return Err("Senha mínima de 6 caracteres.".into());
+    }
 
     let auth_id = state.supabase.criar_usuario(&email, &senha).await?;
 
@@ -62,16 +69,21 @@ pub async fn atualizar_professor(
     senha: String,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    state.supabase
+    state
+        .supabase
         .atualizar_usuario(&id, Some(email.trim()), Some(&senha))
         .await?;
 
     sqlx::query!(
         "UPDATE perfis SET nome=$1, email=$2, senha=$3 WHERE id=$4::uuid AND role='teacher'",
-        nome.trim(), email.trim(), senha,
+        nome.trim(),
+        email.trim(),
+        senha,
         id.parse::<uuid::Uuid>().map_err(|e| e.to_string())?
     )
-    .execute(&state.db).await.map_err(|e| e.to_string())?;
+    .execute(&state.db)
+    .await
+    .map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -82,7 +94,9 @@ pub async fn excluir_professor(id: String, state: State<'_, AppState>) -> Result
         "DELETE FROM perfis WHERE id=$1::uuid",
         id.parse::<uuid::Uuid>().map_err(|e| e.to_string())?
     )
-    .execute(&state.db).await.map_err(|e| e.to_string())?;
+    .execute(&state.db)
+    .await
+    .map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -119,8 +133,11 @@ pub async fn get_alunos(
                WHERE p.role='student' AND p.turma_id=$1::uuid ORDER BY p.nome"#,
             tid.parse::<uuid::Uuid>().map_err(|e| e.to_string())?
         )
-        .fetch_all(pool).await.map_err(|e| e.to_string())?
-        .into_iter().map(|r| Aluno {
+        .fetch_all(pool)
+        .await
+        .map_err(|e| e.to_string())?
+        .into_iter()
+        .map(|r| Aluno {
             id: r.id.unwrap_or_default(),
             nome: r.nome,
             email: r.email.unwrap_or_default(),
@@ -128,7 +145,8 @@ pub async fn get_alunos(
             turma_id: r.turma_id.unwrap_or_default(),
             turma_nome: r.turma_nome.unwrap_or_default(),
             escola_nome: r.escola_nome.unwrap_or_default(),
-        }).collect()
+        })
+        .collect()
     } else if let Some(pid) = professor_id {
         sqlx::query!(
             r#"SELECT p.id::text, p.nome, p.email, p.senha, p.turma_id::text as "turma_id?",
@@ -140,8 +158,11 @@ pub async fn get_alunos(
                WHERE p.role='student' AND t.professor_id=$1::uuid ORDER BY p.nome"#,
             pid.parse::<uuid::Uuid>().map_err(|e| e.to_string())?
         )
-        .fetch_all(pool).await.map_err(|e| e.to_string())?
-        .into_iter().map(|r| Aluno {
+        .fetch_all(pool)
+        .await
+        .map_err(|e| e.to_string())?
+        .into_iter()
+        .map(|r| Aluno {
             id: r.id.unwrap_or_default(),
             nome: r.nome,
             email: r.email.unwrap_or_default(),
@@ -149,7 +170,8 @@ pub async fn get_alunos(
             turma_id: r.turma_id.unwrap_or_default(),
             turma_nome: r.turma_nome.unwrap_or_default(),
             escola_nome: r.escola_nome.unwrap_or_default(),
-        }).collect()
+        })
+        .collect()
     } else {
         sqlx::query!(
             r#"SELECT p.id::text, p.nome, p.email, p.senha, p.turma_id::text as "turma_id?",
@@ -160,8 +182,11 @@ pub async fn get_alunos(
                LEFT JOIN escolas e ON t.escola_id=e.id
                WHERE p.role='student' ORDER BY p.nome"#
         )
-        .fetch_all(pool).await.map_err(|e| e.to_string())?
-        .into_iter().map(|r| Aluno {
+        .fetch_all(pool)
+        .await
+        .map_err(|e| e.to_string())?
+        .into_iter()
+        .map(|r| Aluno {
             id: r.id.unwrap_or_default(),
             nome: r.nome,
             email: r.email.unwrap_or_default(),
@@ -169,7 +194,8 @@ pub async fn get_alunos(
             turma_id: r.turma_id.unwrap_or_default(),
             turma_nome: r.turma_nome.unwrap_or_default(),
             escola_nome: r.escola_nome.unwrap_or_default(),
-        }).collect()
+        })
+        .collect()
     };
 
     Ok(rows)
@@ -183,7 +209,9 @@ pub async fn criar_aluno(
     turma_id: String,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    if senha.len() < 6 { return Err("Senha mínima de 6 caracteres.".into()); }
+    if senha.len() < 6 {
+        return Err("Senha mínima de 6 caracteres.".into());
+    }
 
     let auth_id = state.supabase.criar_usuario(&email, &senha).await?;
 
@@ -193,10 +221,13 @@ pub async fn criar_aluno(
          ON CONFLICT (id) DO UPDATE SET nome=EXCLUDED.nome, email=EXCLUDED.email,
              senha=EXCLUDED.senha, turma_id=EXCLUDED.turma_id",
         auth_id.parse::<uuid::Uuid>().map_err(|e| e.to_string())?,
-        nome.trim(), email.trim(), senha,
+        nome.trim(),
+        email.trim(),
+        senha,
         turma_id.parse::<uuid::Uuid>().map_err(|e| e.to_string())?
     )
-    .execute(&state.db).await;
+    .execute(&state.db)
+    .await;
 
     if let Err(e) = result {
         let _ = state.supabase.excluir_usuario(&auth_id).await;
@@ -214,17 +245,22 @@ pub async fn atualizar_aluno(
     turma_id: String,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    state.supabase
+    state
+        .supabase
         .atualizar_usuario(&id, Some(email.trim()), Some(&senha))
         .await?;
 
     sqlx::query!(
         "UPDATE perfis SET nome=$1, email=$2, senha=$3, turma_id=$4::uuid WHERE id=$5::uuid",
-        nome.trim(), email.trim(), senha,
+        nome.trim(),
+        email.trim(),
+        senha,
         turma_id.parse::<uuid::Uuid>().map_err(|e| e.to_string())?,
         id.parse::<uuid::Uuid>().map_err(|e| e.to_string())?
     )
-    .execute(&state.db).await.map_err(|e| e.to_string())?;
+    .execute(&state.db)
+    .await
+    .map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -235,6 +271,8 @@ pub async fn excluir_aluno(id: String, state: State<'_, AppState>) -> Result<(),
         "DELETE FROM perfis WHERE id=$1::uuid",
         id.parse::<uuid::Uuid>().map_err(|e| e.to_string())?
     )
-    .execute(&state.db).await.map_err(|e| e.to_string())?;
+    .execute(&state.db)
+    .await
+    .map_err(|e| e.to_string())?;
     Ok(())
 }

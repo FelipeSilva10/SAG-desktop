@@ -1,23 +1,33 @@
 // src-tauri/src/commands/cronograma.rs
 
+use crate::AppState;
 use serde::{Deserialize, Serialize};
 use tauri::State;
-use crate::AppState;
 
 #[derive(Serialize, Deserialize)]
 pub struct CronogramaAula {
     pub id: String,
-    #[serde(rename = "professorId")]   pub professor_id: String,
-    #[serde(rename = "professorNome")] pub professor_nome: String,
-    #[serde(rename = "turmaId")]       pub turma_id: String,
-    #[serde(rename = "turmaNome")]     pub turma_nome: String,
-    #[serde(rename = "diaSemana")]     pub dia_semana: String,
-    #[serde(rename = "horarioInicio")] pub horario_inicio: String,
-    #[serde(rename = "horarioFim")]    pub horario_fim: String,
+    #[serde(rename = "professorId")]
+    pub professor_id: String,
+    #[serde(rename = "professorNome")]
+    pub professor_nome: String,
+    #[serde(rename = "turmaId")]
+    pub turma_id: String,
+    #[serde(rename = "turmaNome")]
+    pub turma_nome: String,
+    #[serde(rename = "diaSemana")]
+    pub dia_semana: String,
+    #[serde(rename = "horarioInicio")]
+    pub horario_inicio: String,
+    #[serde(rename = "horarioFim")]
+    pub horario_fim: String,
     pub tipo: String,
-    #[serde(rename = "dataInicio")]    pub data_inicio: Option<String>,
-    #[serde(rename = "dataFim")]       pub data_fim: Option<String>,
-    #[serde(rename = "criadoPor")]     pub criado_por: String,
+    #[serde(rename = "dataInicio")]
+    pub data_inicio: Option<String>,
+    #[serde(rename = "dataFim")]
+    pub data_fim: Option<String>,
+    #[serde(rename = "criadoPor")]
+    pub criado_por: String,
 }
 
 #[tauri::command]
@@ -46,22 +56,27 @@ pub async fn get_cronograma(
                ca.horario_inicio"#,
             pid.parse::<uuid::Uuid>().map_err(|e| e.to_string())?
         )
-        .fetch_all(pool).await.map_err(|e| e.to_string())?;
+        .fetch_all(pool)
+        .await
+        .map_err(|e| e.to_string())?;
 
-        Ok(rows.into_iter().map(|r| CronogramaAula {
-            id: r.id.unwrap_or_default(),
-            professor_id: r.professor_id.unwrap_or_default(),
-            professor_nome: r.professor_nome,
-            turma_id: r.turma_id.unwrap_or_default(),
-            turma_nome: r.turma_nome,
-            dia_semana: r.dia_semana,
-            horario_inicio: r.horario_inicio.unwrap_or_default(),
-            horario_fim: r.horario_fim.unwrap_or_default(),
-            tipo: r.tipo,
-            data_inicio: r.data_inicio,
-            data_fim: r.data_fim,
-            criado_por: r.criado_por,
-        }).collect())
+        Ok(rows
+            .into_iter()
+            .map(|r| CronogramaAula {
+                id: r.id.unwrap_or_default(),
+                professor_id: r.professor_id.unwrap_or_default(),
+                professor_nome: r.professor_nome,
+                turma_id: r.turma_id.unwrap_or_default(),
+                turma_nome: r.turma_nome,
+                dia_semana: r.dia_semana,
+                horario_inicio: r.horario_inicio.unwrap_or_default(),
+                horario_fim: r.horario_fim.unwrap_or_default(),
+                tipo: r.tipo,
+                data_inicio: r.data_inicio,
+                data_fim: r.data_fim,
+                criado_por: r.criado_por,
+            })
+            .collect())
     } else {
         let rows = sqlx::query!(
             r#"SELECT ca.id::text, ca.professor_id::text, pf.nome AS professor_nome,
@@ -79,22 +94,27 @@ pub async fn get_cronograma(
                  WHEN 'QUINTA' THEN 4 WHEN 'SEXTA' THEN 5 WHEN 'SÁBADO' THEN 6 END,
                ca.horario_inicio"#
         )
-        .fetch_all(pool).await.map_err(|e| e.to_string())?;
+        .fetch_all(pool)
+        .await
+        .map_err(|e| e.to_string())?;
 
-        Ok(rows.into_iter().map(|r| CronogramaAula {
-            id: r.id.unwrap_or_default(),
-            professor_id: r.professor_id.unwrap_or_default(),
-            professor_nome: r.professor_nome,
-            turma_id: r.turma_id.unwrap_or_default(),
-            turma_nome: r.turma_nome,
-            dia_semana: r.dia_semana,
-            horario_inicio: r.horario_inicio.unwrap_or_default(),
-            horario_fim: r.horario_fim.unwrap_or_default(),
-            tipo: r.tipo,
-            data_inicio: r.data_inicio,
-            data_fim: r.data_fim,
-            criado_por: r.criado_por,
-        }).collect())
+        Ok(rows
+            .into_iter()
+            .map(|r| CronogramaAula {
+                id: r.id.unwrap_or_default(),
+                professor_id: r.professor_id.unwrap_or_default(),
+                professor_nome: r.professor_nome,
+                turma_id: r.turma_id.unwrap_or_default(),
+                turma_nome: r.turma_nome,
+                dia_semana: r.dia_semana,
+                horario_inicio: r.horario_inicio.unwrap_or_default(),
+                horario_fim: r.horario_fim.unwrap_or_default(),
+                tipo: r.tipo,
+                data_inicio: r.data_inicio,
+                data_fim: r.data_fim,
+                criado_por: r.criado_por,
+            })
+            .collect())
     }
 }
 
@@ -111,15 +131,21 @@ pub async fn criar_cronograma(
     criado_por: String,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    let parsed_inicio = chrono::NaiveTime::parse_from_str(&horario_inicio, "%H:%M").map_err(|e| e.to_string())?;
-    let parsed_fim = chrono::NaiveTime::parse_from_str(&horario_fim, "%H:%M").map_err(|e| e.to_string())?;
-    
+    let parsed_inicio =
+        chrono::NaiveTime::parse_from_str(&horario_inicio, "%H:%M").map_err(|e| e.to_string())?;
+    let parsed_fim =
+        chrono::NaiveTime::parse_from_str(&horario_fim, "%H:%M").map_err(|e| e.to_string())?;
+
     let parsed_d_inicio = match data_inicio {
-        Some(ref d) => Some(chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").map_err(|e| e.to_string())?),
+        Some(ref d) => {
+            Some(chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").map_err(|e| e.to_string())?)
+        }
         None => None,
     };
     let parsed_d_fim = match data_fim {
-        Some(ref d) => Some(chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").map_err(|e| e.to_string())?),
+        Some(ref d) => {
+            Some(chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").map_err(|e| e.to_string())?)
+        }
         None => None,
     };
 
@@ -142,6 +168,8 @@ pub async fn excluir_cronograma(id: String, state: State<'_, AppState>) -> Resul
         "DELETE FROM cronograma_aulas WHERE id=$1::uuid",
         id.parse::<uuid::Uuid>().map_err(|e| e.to_string())?
     )
-    .execute(&state.db).await.map_err(|e| e.to_string())?;
+    .execute(&state.db)
+    .await
+    .map_err(|e| e.to_string())?;
     Ok(())
 }
